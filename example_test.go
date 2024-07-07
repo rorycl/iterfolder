@@ -5,26 +5,30 @@ import (
 	"iter"
 )
 
-func Example_IterFolder() {
+func ExampleIterFolder() {
+
 	// define input types and data
-	type x int
-	type y int
-	type z int
-	input := [][]int{[]int{1, 2, 3}, []int{1, 2, 4}, []int{2, 3, 5}, []int{3, 4, 6}, []int{3, 5, 7}}
+	type xyz = ABC[int, int, int]
+	input := []xyz{
+		xyz{1, 2, 3},
+		xyz{1, 2, 4},
+		xyz{2, 3, 5},
+		xyz{3, 4, 6},
+		xyz{3, 5, 7},
+	}
 
 	// construct input iterator to send to folder
-	type xyz = ABC[x, y, z]
 	xyzIter := func() iter.Seq[xyz] {
 		return func(yield func(xyz) bool) {
-			for _, in := range input {
-				yield(xyz{x(in[0]), y(in[1]), z(in[2])})
+			for _, this := range input {
+				yield(this)
 			}
 		}
 	}()
 
 	// run the folder
 	fmt.Println("")
-	for a := range IterFolder[x, y, z](xyzIter) {
+	for a := range IterFolder[int, int, int](xyzIter) {
 		fmt.Println(a.This)
 		for b := range a.Iter() {
 			fmt.Println(">", b.This)

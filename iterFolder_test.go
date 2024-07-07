@@ -3,12 +3,18 @@ package iterfolder
 import (
 	"fmt"
 	"iter"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
+	"text/template"
 
 	"github.com/google/go-cmp/cmp"
 )
+
+func TestAlternative(t *testing.T) {
+
+}
 
 func TestSimpleIter(t *testing.T) {
 	type x int
@@ -132,4 +138,64 @@ func TestGenIter(t *testing.T) {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
 	t.Log(output)
+}
+
+// as at 07 July 2024, text/template does not support iterating over an
+// iter.Seq. See https://go.dev/issue/66107
+func TestTemplate(t *testing.T) {
+
+	//
+	t.SkipNow()
+
+	type n string
+	type o string
+	type p string
+	// type alias
+	type nop = ABC[n, o, p]
+
+	nopIter := func() iter.Seq[nop] {
+		input := []nop{
+			nop{"one", "two", "three"},
+			nop{"one", "two", "four"},
+			nop{"two", "three", "five"},
+			nop{"three", "four", "six"},
+			nop{"three", "five", "seven"},
+		}
+		return func(yield func(nop) bool) {
+			for _, in := range input {
+				yield(in)
+			}
+		}
+	}()
+
+	resulter := IterFolder[n, o, p](nopIter)
+
+	// this resulter does not work either
+	// resulter := func(yield func(int) bool) {
+	// 	for _, v := range []int{1, 2, 3} {
+	// 		if !yield(v) {
+	// 			return
+	// 		}
+	// 	}
+	// }
+	//
+	// this iterable works
+	// resulter := []string{"a", "b"}
+
+	tpl := `
+{{ range $aa := . }}
+{{ $aa.This }}
+	{{ range $bb := $aa.Iter }}
+	{{ $bb.This }}
+		{{ range $cc := $bb.Iter }}
+		{{ $cc }}
+{{ end }}
+{{ end }}
+{{ end }}
+`
+	tplParsed := template.Must(template.New("test").Parse(tpl))
+	err := tplParsed.Execute(os.Stdout, resulter)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

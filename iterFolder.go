@@ -1,11 +1,11 @@
-// iterfolder is a package that takes an iterator which is a
-// composite of three types and "folds" the right hand items into
-// common values in the left hand items.
+// iterfolder is a package for go1.22 (using the "rangefunc" experiment)
+// or higher that takes an iterator which is a composite of three types
+// and "folds" left hand items of common value.
 //
-// This might be useful, for example, for putting the results of a
-// compound sql "domain aggregate" query returning rows coerced to
-// {people}{cars}{tickets} into an iterator which can then be printed,
-// or otherwise used, to allow nested iteration such as:
+// This might be useful, for example, for putting the results of a sql
+// "domain aggregate" query returning rows coerced to compound struct of
+// structs (e.g. rows of `{perspon}{car}{ticket}`) into a tiered
+// iterator which can be used as follows:
 //
 //	for _, person := range <IterFolder.results> {
 //		// do something with person
@@ -16,6 +16,15 @@
 //			}
 //		}
 //	}
+//
+// The input iterator should be sorted  and duplicate "rows" are not
+// eliminated.
+//
+// Note that as of July 2024, Go templates do not yet support iterating
+// over an iter.Seq. See https://go.dev/issue/66107.
+//
+// For more information about the rangefunc experiment, see
+// https://go.dev/wiki/RangefuncExperiment.
 package iterfolder
 
 import (
@@ -43,6 +52,8 @@ func (o *Obj[T, U]) eq(n T) bool {
 	return o.This == n
 }
 
+// Iter provides an iterator over the subsiduary items contained in
+// [Obj].
 func (o *Obj[T, U]) Iter() iter.Seq[U] {
 	if debug {
 		fmt.Printf("calling Iter() on %T\n", o.those)
@@ -57,22 +68,24 @@ func (o *Obj[T, U]) Iter() iter.Seq[U] {
 }
 
 // ABC is a composite struct of the three types making up the recursive
-// object/s. ABC is the required type of Iter.Seq to provide to IterFolder
+// object/s. ABC is the required type of Iter.Seq to provide to
+// [IterFolder].
 type ABC[A, B, C comparable] struct {
 	A A
 	B B
 	C C
 }
 
-// IterFolder takes an iter.Seq of ABC and returns a three-level
-// iterable of iter.Seq[Obj[A, Obj[B, C]]] which "folds" the right hand
-// types into the left hand types. So,
+// IterFolder takes an iter.Seq of [ABC] and returns a three-level
+// iterable of iter.Seq[Obj[A, Obj[B, C]]] which "folds" the left hand
+// items of common value. Conceptually IterFolder translates an iterable
+// that would provide:
 //
 //	1 2 3
 //	1 2 4
 //	2 3 4
 //
-// will (if put into an interator of the ABC type), be folded to
+// into an iterable that provides:
 //
 //	1
 //	  2
@@ -81,6 +94,9 @@ type ABC[A, B, C comparable] struct {
 //	2
 //	  3
 //	    4
+//
+// Note that duplicate rows will provide duplicate right hand values in
+// the output.
 func IterFolder[A, B, C comparable](abc iter.Seq[ABC[A, B, C]]) iter.Seq[Obj[A, Obj[B, C]]] {
 
 	type aT = Obj[A, Obj[B, C]]
@@ -102,13 +118,16 @@ func IterFolder[A, B, C comparable](abc iter.Seq[ABC[A, B, C]]) iter.Seq[Obj[A, 
 				continue
 			}
 			switch {
+			// a and b are unchanged
 			case aobj.eq(ta) && bobj.eq(tb):
 				bobj.add(tc)
-				aobj.replace(bobj)
+				aobj.replace(bobj) // replace the last a.those
+			// a is unchanged
 			case aobj.eq(ta):
 				bobj = bT{This: tb}
 				bobj.add(tc)
 				aobj.add(bobj)
+			// all have changed
 			default:
 				if !yield(aobj) {
 					return
