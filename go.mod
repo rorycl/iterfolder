@@ -1,4 +1,4 @@
-module iterfolder
+module github.com/rorycl/iterfolder
 
 go 1.22.1
 
