@@ -4,7 +4,7 @@
 //
 // This might be useful, for example, for putting the results of a sql
 // "domain aggregate" query returning rows coerced to compound struct of
-// structs (e.g. rows of `{perspon}{car}{ticket}`) into a tiered
+// structs (e.g. rows of `{person}{car}{ticket}`) into a tiered
 // iterator which can be used as follows:
 //
 //	for _, person := range <IterFolder.results> {
@@ -17,8 +17,8 @@
 //		}
 //	}
 //
-// The input iterator should be sorted  and duplicate "rows" are not
-// eliminated.
+// Note that the input iterator should be pre-sorted and that duplicate
+// "rows" are not squashed.
 //
 // Note that as of July 2024, Go templates do not yet support iterating
 // over an iter.Seq. See https://go.dev/issue/66107.
@@ -52,7 +52,7 @@ func (o *Obj[T, U]) eq(n T) bool {
 	return o.This == n
 }
 
-// Iter provides an iterator over the subsiduary items contained in
+// Iter provides an iterator over the subsidiary items contained in
 // [Obj].
 func (o *Obj[T, U]) Iter() iter.Seq[U] {
 	if debug {
