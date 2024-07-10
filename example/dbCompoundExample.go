@@ -68,20 +68,20 @@ SELECT
     ,long
 FROM (
     SELECT 
-		-- person
+        -- person
         p.id AS personid
         ,p.firstname
         ,p.lastname
-		-- car
+        -- car
         ,c.registration
         ,c.manufacturer
         ,c.model
-		-- ticket (showing just the left part of the uuid)
+        -- ticket (showing just the left part of the uuid)
         ,left(t.uuid::text, 8) AS uuidpart
         ,date(t.datetime) as date
-		,lat
-		,long
-		-- 
+        ,lat
+        ,long
+        -- 
         ,count(t.uuid) OVER (PARTITION BY p.id) AS ticket_count
         ,CASE
          WHEN row_number() OVER (PARTITION BY p.id, c.registration) = 1 THEN 1
@@ -93,9 +93,9 @@ FROM (
         join tickets t ON t.car = c.registration
     ) x
 ORDER BY
-	ticket_count
-	,personid
-	,registration
+    ticket_count
+    ,personid
+    ,registration
 ;
 `
 
