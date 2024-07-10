@@ -31,7 +31,7 @@ https://go.dev/wiki/RangefuncExperiment.
 
 ## database usage example
 
-See [examples](./examples) for a database example using pgx, embedded
+See [example](./example) for a database example using pgx, embedded
 structs and `pgx.RowToStructByName` via a docker example.
 
 Example output:
